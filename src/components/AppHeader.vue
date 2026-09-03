@@ -1,7 +1,29 @@
-```vue
 <script>
 export default {
     name: "AppHeader",
+
+    data() {
+        return {
+            searchQuery: "",
+        };
+    },
+
+    methods: {
+        handleSearch() {
+            const query = this.searchQuery.trim();
+
+            if (!query) {
+                return;
+            }
+
+            this.$router.push({
+                path: "/search",
+                query: {
+                    q: query,
+                },
+            });
+        },
+    },
 };
 </script>
 
@@ -10,7 +32,12 @@ export default {
         <div class="container-fluid px-3 px-lg-4">
             <!-- Logo -->
             <RouterLink to="/" class="navbar-brand">
-                <img src="" alt="Logo" width="30" height="24" />
+                <img
+                    src="../assets/Logo SVG.svg"
+                    alt="Logo"
+                    width="55"
+                    height="50"
+                />
             </RouterLink>
 
             <!-- Right Side Icons -->
@@ -76,7 +103,9 @@ export default {
                 <!-- Navigation Links -->
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <RouterLink to="/" class="nav-link"> Shop </RouterLink>
+                        <RouterLink to="/shop" class="nav-link">
+                            Shop
+                        </RouterLink>
                     </li>
 
                     <li class="nav-item">
@@ -102,9 +131,11 @@ export default {
                 <form
                     class="d-flex search-form mx-lg-auto my-3 my-lg-0"
                     role="search"
+                    @submit.prevent="handleSearch"
                 >
                     <div class="input-group">
                         <input
+                            v-model="searchQuery"
                             class="form-control"
                             type="search"
                             placeholder="Search"
