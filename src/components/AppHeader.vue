@@ -1,4 +1,6 @@
 <script>
+import { cartStore } from "../store/cartStore.js";
+
 export default {
     name: "AppHeader",
 
@@ -6,6 +8,12 @@ export default {
         return {
             searchQuery: "",
         };
+    },
+
+    computed: {
+        cartCount() {
+            return cartStore.items.length;
+        },
     },
 
     methods: {
@@ -78,9 +86,10 @@ export default {
                     <i class="bi bi-cart3"></i>
 
                     <span
+                        v-if="cartCount > 0"
                         class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
                     >
-                        0
+                        {{ cartCount }}
                     </span>
                 </RouterLink>
             </div>

@@ -9,7 +9,8 @@ export default {
         hideHeader() {
             return (
                 this.$route.meta?.hideHeader ||
-                this.$route.path?.startsWith("/admin")
+                this.$route.path?.startsWith("/admin") ||
+                this.$route.path?.startsWith("/checkout")
             );
         },
     },

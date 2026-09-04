@@ -15,6 +15,8 @@ import Support from "./views/Support.vue";
 import Search from "./views/Search.vue";
 import Handler from "./components/handler.vue";
 import AdminDashboard from "./views/AdminDashboard.vue";
+import Cart from "./views/Cart.vue";
+import Checkout from "./views/Checkout.vue";
 
 const routes = [
     { path: "/", name: "home", component: Home },
@@ -23,6 +25,19 @@ const routes = [
     { path: "/deals", name: "deals", component: Deals },
     { path: "/support", name: "support", component: Support },
     { path: "/search", name: "search", component: Search },
+    { path: "/cart", name: "cart", component: Cart },
+    {
+        path: "/checkout",
+        name: "checkout",
+        component: Checkout,
+        meta: { hideHeader: true },
+    },
+    {
+        path: "/checkout/:step",
+        name: "checkout-step",
+        component: Checkout,
+        meta: { hideHeader: true },
+    },
     {
         path: "/admin",
         name: "admin",
