@@ -14,6 +14,7 @@ import Deals from "./views/Deals.vue";
 import Support from "./views/Support.vue";
 import Search from "./views/Search.vue";
 import Handler from "./components/handler.vue";
+import AdminDashboard from "./views/AdminDashboard.vue";
 
 const routes = [
     { path: "/", name: "home", component: Home },
@@ -21,7 +22,17 @@ const routes = [
     { path: "/categories", name: "categories", component: Categories },
     { path: "/deals", name: "deals", component: Deals },
     { path: "/support", name: "support", component: Support },
-    {path: "/search", name: "search", component: Search,},
+    { path: "/search", name: "search", component: Search },
+    {
+        path: "/admin",
+        name: "admin",
+        component: AdminDashboard,
+        meta: { hideHeader: true },
+    },
+    {
+        path: "/admin/dashboard",
+        redirect: "/admin",
+    },
 ];
 
 const router = createRouter({

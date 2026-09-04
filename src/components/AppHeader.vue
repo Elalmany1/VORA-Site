@@ -125,6 +125,12 @@ export default {
                             Support
                         </RouterLink>
                     </li>
+
+                    <li class="nav-item">
+                        <RouterLink to="/admin" class="nav-link text-info fw-semibold">
+                            <i class="bi bi-speedometer2 me-1"></i> Admin
+                        </RouterLink>
+                    </li>
                 </ul>
 
                 <!-- Desktop Search -->
