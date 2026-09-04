@@ -1,5 +1,6 @@
 <script>
 import AppFooter from "../components/AppFooter.vue";
+import { fetchApi } from "../services/fetchApi.js";
 
 export default {
     name: "Shop",
@@ -15,27 +16,27 @@ export default {
             error: null,
 
             categories: [
-    {
-        name: "Refrigeration",
-        icon: "refrigeration",
-    },
-    {
-        name: "Laundry",
-        icon: "laundry",
-    },
-    {
-        name: "Dishwashers",
-        icon: "dishwasher",
-    },
-    {
-        name: "Ovens & Ranges",
-        icon: "oven",
-    },
-    {
-        name: "Microwaves",
-        icon: "microwave",
-    },
-],
+                {
+                    name: "Refrigeration",
+                    icon: "refrigeration",
+                },
+                {
+                    name: "Laundry",
+                    icon: "laundry",
+                },
+                {
+                    name: "Dishwashers",
+                    icon: "dishwasher",
+                },
+                {
+                    name: "Ovens & Ranges",
+                    icon: "oven",
+                },
+                {
+                    name: "Microwaves",
+                    icon: "microwave",
+                },
+            ],
         };
     },
 
@@ -49,15 +50,9 @@ export default {
                 this.loading = true;
                 this.error = null;
 
-                const response = await fetch(
-                    "https://dummyjson.com/products/category/kitchen-accessories?limit=4",
+                const data = await fetchApi(
+                    "/products/category/kitchen-accessories?limit=4",
                 );
-
-                if (!response.ok) {
-                    throw new Error("Failed to fetch products");
-                }
-
-                const data = await response.json();
 
                 this.products = data.products;
             } catch (error) {
@@ -73,6 +68,14 @@ export default {
             console.log("Product added to cart:", product);
 
             // هنربط الـ Cart هنا بعدين
+        },
+        viewDetails(product) {
+            this.$router.push({
+                name: "product-details",
+                params: {
+                    id: product.id,
+                },
+            });
         },
     },
 };
@@ -130,106 +133,129 @@ export default {
             </div>
 
             <div class="categories-grid">
-                <div
+                <RouterLink
                     v-for="category in categories"
                     :key="category.name"
+                    :to="{
+                        name: 'categories',
+                        query: { category: category.name },
+                    }"
                     class="category-card"
                 >
                     <div class="category-icon">
+                        <!-- Refrigeration -->
+                        <svg
+                            v-if="category.icon === 'refrigeration'"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <rect x="5" y="2" width="14" height="20" rx="2" />
+                            <line x1="5" y1="10" x2="19" y2="10" />
+                            <line x1="9" y1="6" x2="9" y2="8" />
+                            <line x1="9" y1="13" x2="9" y2="17" />
+                        </svg>
 
-    <!-- Refrigeration -->
-    <svg
-        v-if="category.icon === 'refrigeration'"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.8"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-    >
-        <rect x="5" y="2" width="14" height="20" rx="2" />
-        <line x1="5" y1="10" x2="19" y2="10" />
-        <line x1="9" y1="6" x2="9" y2="8" />
-        <line x1="9" y1="13" x2="9" y2="17" />
-    </svg>
+                        <!-- Laundry -->
+                        <svg
+                            v-else-if="category.icon === 'laundry'"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <circle cx="12" cy="13" r="5" />
+                            <circle cx="8" cy="7" r="0.7" fill="currentColor" />
+                            <circle
+                                cx="11"
+                                cy="7"
+                                r="0.7"
+                                fill="currentColor"
+                            />
+                        </svg>
 
-    <!-- Laundry -->
-    <svg
-        v-else-if="category.icon === 'laundry'"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.8"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-    >
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <circle cx="12" cy="13" r="5" />
-        <circle cx="8" cy="7" r="0.7" fill="currentColor" />
-        <circle cx="11" cy="7" r="0.7" fill="currentColor" />
-    </svg>
+                        <!-- Dishwasher -->
+                        <svg
+                            v-else-if="category.icon === 'dishwasher'"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <rect x="4" y="2" width="16" height="20" rx="2" />
+                            <line x1="4" y1="7" x2="20" y2="7" />
+                            <circle
+                                cx="8"
+                                cy="4.5"
+                                r="0.7"
+                                fill="currentColor"
+                            />
+                            <circle
+                                cx="11"
+                                cy="4.5"
+                                r="0.7"
+                                fill="currentColor"
+                            />
+                            <path d="M8 12h8" />
+                            <path d="M8 15h8" />
+                            <path d="M8 18h8" />
+                        </svg>
 
-    <!-- Dishwasher -->
-    <svg
-        v-else-if="category.icon === 'dishwasher'"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.8"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-    >
-        <rect x="4" y="2" width="16" height="20" rx="2" />
-        <line x1="4" y1="7" x2="20" y2="7" />
-        <circle cx="8" cy="4.5" r="0.7" fill="currentColor" />
-        <circle cx="11" cy="4.5" r="0.7" fill="currentColor" />
-        <path d="M8 12h8" />
-        <path d="M8 15h8" />
-        <path d="M8 18h8" />
-    </svg>
+                        <!-- Oven -->
+                        <svg
+                            v-else-if="category.icon === 'oven'"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <rect x="3" y="2" width="18" height="20" rx="2" />
+                            <circle cx="8" cy="6" r="1" />
+                            <circle cx="12" cy="6" r="1" />
+                            <circle cx="16" cy="6" r="1" />
+                            <rect x="6" y="10" width="12" height="8" rx="1" />
+                            <path d="M9 14c1-2 2-2 3 0s2 2 3 0" />
+                        </svg>
 
-    <!-- Oven -->
-    <svg
-        v-else-if="category.icon === 'oven'"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.8"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-    >
-        <rect x="3" y="2" width="18" height="20" rx="2" />
-        <circle cx="8" cy="6" r="1" />
-        <circle cx="12" cy="6" r="1" />
-        <circle cx="16" cy="6" r="1" />
-        <rect x="6" y="10" width="12" height="8" rx="1" />
-        <path d="M9 14c1-2 2-2 3 0s2 2 3 0" />
-    </svg>
-
-    <!-- Microwave -->
-    <svg
-        v-else-if="category.icon === 'microwave'"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.8"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-    >
-        <rect x="2" y="5" width="20" height="14" rx="2" />
-        <rect x="4.5" y="7.5" width="11" height="9" rx="1" />
-        <circle cx="19" cy="9" r="0.8" />
-        <circle cx="19" cy="12" r="0.8" />
-        <circle cx="19" cy="15" r="0.8" />
-        <path d="M7 12h6" />
-    </svg>
-
-</div>
+                        <!-- Microwave -->
+                        <svg
+                            v-else-if="category.icon === 'microwave'"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <rect x="2" y="5" width="20" height="14" rx="2" />
+                            <rect
+                                x="4.5"
+                                y="7.5"
+                                width="11"
+                                height="9"
+                                rx="1"
+                            />
+                            <circle cx="19" cy="9" r="0.8" />
+                            <circle cx="19" cy="12" r="0.8" />
+                            <circle cx="19" cy="15" r="0.8" />
+                            <path d="M7 12h6" />
+                        </svg>
+                    </div>
 
                     <h3>
                         {{ category.name }}
                     </h3>
-                </div>
+                </RouterLink>
             </div>
         </section>
 
@@ -243,7 +269,7 @@ export default {
             <div class="section-heading products-heading">
                 <h2>High-Performance Models</h2>
 
-                <RouterLink to="/shop" class="view-all-link">
+                <RouterLink to="/search" class="view-all-link">
                     View All
                     <i class="bi bi-arrow-right"></i>
                 </RouterLink>
@@ -281,7 +307,7 @@ export default {
                     :key="product.id"
                     class="col-12 col-sm-6 col-lg-3"
                 >
-                    <article class="product-card">
+                    <article class="product-card" @click="viewDetails(product)">
                         <!-- Product Image -->
 
                         <div class="product-image-wrapper">
@@ -558,6 +584,8 @@ export default {
 }
 
 .category-card {
+    text-decoration: none;
+    color: inherit;
     min-height: 101px;
 
     border: 1px solid #d1d0d3;

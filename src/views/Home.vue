@@ -56,7 +56,7 @@ export default {
                     <div class="col-lg-7">
                         <div class="hero-image-wrapper">
                             <img
-                                src="../assets/laptop.jpg"
+                                src="../assets/laptop photo.jpg"
                                 alt="Premium Laptop"
                                 class="hero-image"
                             />

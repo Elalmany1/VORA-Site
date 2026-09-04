@@ -13,6 +13,7 @@ import Categories from "./views/Categories.vue";
 import Deals from "./views/Deals.vue";
 import Support from "./views/Support.vue";
 import Search from "./views/Search.vue";
+import ProductDetails from "./views/ProductDetails.vue";
 import Handler from "./components/handler.vue";
 
 const routes = [
@@ -21,12 +22,16 @@ const routes = [
     { path: "/categories", name: "categories", component: Categories },
     { path: "/deals", name: "deals", component: Deals },
     { path: "/support", name: "support", component: Support },
-    {path: "/search", name: "search", component: Search,},
+    { path: "/search", name: "search", component: Search },
+    {path: "/product/:id", name: "product-details", component: ProductDetails,},
 ];
 
 const router = createRouter({
     history: createWebHistory(),
     routes,
+    scrollBehavior() {
+        return { top: 0 };
+    },
 });
 
 createApp(App).use(router).mount("#app");

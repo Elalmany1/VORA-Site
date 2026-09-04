@@ -1,25 +1,27 @@
 <script>
 import AppFooter from "../components/AppFooter.vue";
+import ProductsComponent from "../components/ProductsComponent.vue";
+import { fetchApi } from "../services/fetchApi";
 
 export default {
     name: "Search",
 
     components: {
         AppFooter,
+        ProductsComponent,
     },
 
     data() {
         return {
-            products: [],
+            allProducts: [],
+
             searchQuery: "",
+
             loading: false,
             error: "",
 
             currentPage: 1,
             productsPerPage: 12,
-            totalProducts: 0,
-
-            // ================= FILTERS =================
 
             selectedCategories: [],
             selectedBrands: [],
@@ -28,59 +30,53 @@ export default {
             minPrice: "",
             maxPrice: "",
 
-            productTypeOpen: true,
-            brandOpen: true,
-            ratingOpen: true,
-
-            // ================= SORT =================
+            productTypeOpen: false,
+            brandOpen: false,
+            ratingOpen: false,
 
             sortBy: "relevance",
         };
     },
 
     computed: {
-        // ================= PAGINATION =================
-
-        totalPages() {
-            return Math.ceil(this.totalProducts / this.productsPerPage);
-        },
-
-        visiblePages() {
-            const pages = [];
-
-            for (let i = 1; i <= this.totalPages; i++) {
-                pages.push(i);
-            }
-
-            return pages;
-        },
-
-        // ================= CATEGORIES =================
+        /*
+        |--------------------------------------------------------------------------
+        | Available Categories
+        |--------------------------------------------------------------------------
+        */
 
         availableCategories() {
-            const categories = this.products
+            const categories = this.allProducts
                 .map((product) => product.category)
                 .filter(Boolean);
 
-            return [...new Set(categories)];
+            return [...new Set(categories)].sort();
         },
 
-        // ================= BRANDS =================
+        /*
+        |--------------------------------------------------------------------------
+        | Available Brands
+        |--------------------------------------------------------------------------
+        */
 
         availableBrands() {
-            const brands = this.products
+            const brands = this.allProducts
                 .map((product) => product.brand)
                 .filter(Boolean);
 
             return [...new Set(brands)].sort();
         },
 
-        // ================= FILTERED PRODUCTS =================
+        /*
+        |--------------------------------------------------------------------------
+        | Filter Products
+        |--------------------------------------------------------------------------
+        */
 
         filteredProducts() {
-            let result = [...this.products];
+            let result = [...this.allProducts];
 
-            // Product Type
+            // Category
             if (this.selectedCategories.length > 0) {
                 result = result.filter((product) =>
                     this.selectedCategories.includes(product.category),
@@ -118,70 +114,191 @@ export default {
 
             return result;
         },
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sorted Products
+        |--------------------------------------------------------------------------
+        */
+
+        sortedProducts() {
+            const result = [...this.filteredProducts];
+
+            if (this.sortBy === "price-low") {
+                result.sort((a, b) => Number(a.price) - Number(b.price));
+            }
+
+            if (this.sortBy === "price-high") {
+                result.sort((a, b) => Number(b.price) - Number(a.price));
+            }
+
+            if (this.sortBy === "rating") {
+                result.sort((a, b) => Number(b.rating) - Number(a.rating));
+            }
+
+            return result;
+        },
+
+        /*
+        |--------------------------------------------------------------------------
+        | Total Products
+        |--------------------------------------------------------------------------
+        */
+
+        totalProducts() {
+            return this.sortedProducts.length;
+        },
+
+        /*
+        |--------------------------------------------------------------------------
+        | Total Pages
+        |--------------------------------------------------------------------------
+        */
+
+        totalPages() {
+            return Math.ceil(this.totalProducts / this.productsPerPage);
+        },
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pagination
+        |--------------------------------------------------------------------------
+        */
+
+        paginatedProducts() {
+            const start = (this.currentPage - 1) * this.productsPerPage;
+
+            const end = start + this.productsPerPage;
+
+            return this.sortedProducts.slice(start, end);
+        },
+
+        /*
+        |--------------------------------------------------------------------------
+        | Visible Pages
+        |--------------------------------------------------------------------------
+        */
+
+        visiblePages() {
+            const pages = [];
+
+            let start = Math.max(1, this.currentPage - 1);
+            let end = Math.min(this.totalPages, start + 2);
+
+            if (end - start < 2) {
+                start = Math.max(1, end - 2);
+            }
+
+            for (let i = start; i <= end; i++) {
+                pages.push(i);
+            }
+
+            return pages;
+        },
     },
 
     watch: {
+        /*
+        |--------------------------------------------------------------------------
+        | Search Query
+        |--------------------------------------------------------------------------
+        */
+
         "$route.query.q": {
             immediate: true,
 
             handler(newQuery) {
                 this.searchQuery = newQuery || "";
+
                 this.currentPage = 1;
 
-                // Reset filters when searching for something new
                 this.resetFilters();
 
-                if (this.searchQuery.trim()) {
-                    this.fetchProducts();
-                } else {
-                    this.products = [];
-                    this.totalProducts = 0;
-                }
+                this.fetchProducts();
             },
+        },
+
+        /*
+        |--------------------------------------------------------------------------
+        | Filters
+        |--------------------------------------------------------------------------
+        */
+
+        selectedCategories: {
+            deep: true,
+
+            handler() {
+                this.currentPage = 1;
+            },
+        },
+
+        selectedBrands: {
+            deep: true,
+
+            handler() {
+                this.currentPage = 1;
+            },
+        },
+
+        selectedRating() {
+            this.currentPage = 1;
+        },
+
+        minPrice() {
+            this.currentPage = 1;
+        },
+
+        maxPrice() {
+            this.currentPage = 1;
+        },
+
+        sortBy() {
+            this.currentPage = 1;
         },
     },
 
     methods: {
-        // ================= FETCH PRODUCTS =================
+        /*
+        |--------------------------------------------------------------------------
+        | Fetch All Search Results
+        |--------------------------------------------------------------------------
+        */
 
         async fetchProducts() {
             this.loading = true;
             this.error = "";
 
             try {
-                const skip = (this.currentPage - 1) * this.productsPerPage;
+                let endpoint;
 
-                const url =
-                    `https://dummyjson.com/products/search` +
-                    `?q=${encodeURIComponent(this.searchQuery)}` +
-                    `&limit=${this.productsPerPage}` +
-                    `&skip=${skip}`;
-
-                const response = await fetch(url);
-
-                if (!response.ok) {
-                    throw new Error("Failed to fetch products");
+                if (this.searchQuery.trim()) {
+                    endpoint =
+                        `/products/search` +
+                        `?q=${encodeURIComponent(this.searchQuery)}` +
+                        `&limit=0`;
+                } else {
+                    endpoint = `/products?limit=0`;
                 }
 
-                const data = await response.json();
+                const data = await fetchApi(endpoint);
 
-                this.products = data.products || [];
-                this.totalProducts = data.total || 0;
-
-                this.applySorting();
+                this.allProducts = data.products || [];
             } catch (error) {
                 console.error(error);
 
                 this.error = "Something went wrong while loading the products.";
 
-                this.products = [];
-                this.totalProducts = 0;
+                this.allProducts = [];
             } finally {
                 this.loading = false;
             }
         },
 
-        // ================= PAGINATION =================
+        /*
+        |--------------------------------------------------------------------------
+        | Pagination
+        |--------------------------------------------------------------------------
+        */
 
         goToPage(page) {
             if (page < 1 || page > this.totalPages) {
@@ -189,8 +306,6 @@ export default {
             }
 
             this.currentPage = page;
-
-            this.fetchProducts();
 
             window.scrollTo({
                 top: 0,
@@ -210,27 +325,11 @@ export default {
             }
         },
 
-        // ================= SORT =================
-
-        changeSort() {
-            this.applySorting();
-        },
-
-        applySorting() {
-            if (this.sortBy === "price-low") {
-                this.products.sort((a, b) => a.price - b.price);
-            }
-
-            if (this.sortBy === "price-high") {
-                this.products.sort((a, b) => b.price - a.price);
-            }
-
-            if (this.sortBy === "rating") {
-                this.products.sort((a, b) => b.rating - a.rating);
-            }
-        },
-
-        // ================= RESET FILTERS =================
+        /*
+        |--------------------------------------------------------------------------
+        | Filters
+        |--------------------------------------------------------------------------
+        */
 
         resetFilters() {
             this.selectedCategories = [];
@@ -239,49 +338,57 @@ export default {
 
             this.minPrice = "";
             this.maxPrice = "";
+
+            this.sortBy = "relevance";
         },
 
-        // ================= CART =================
+        clearAllFilters() {
+            this.resetFilters();
+        },
+
+        /*
+        |--------------------------------------------------------------------------
+        | Cart
+        |--------------------------------------------------------------------------
+        */
 
         addToCart(product) {
             console.log("Added to cart:", product);
 
-            // Later we can connect this with the real cart.
+            // Later:
+            // cart logic
         },
 
-        // ================= FORMAT PRICE =================
+        /*
+        |--------------------------------------------------------------------------
+        | Product Details
+        |--------------------------------------------------------------------------
+        */
 
-        formatPrice(price) {
-            return new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: "USD",
-            }).format(price);
+        viewProductDetails(product) {
+            console.log("View product:", product);
+
+            // Later:
+            // this.$router.push(...)
         },
 
-        // ================= PRODUCT CATEGORY =================
+        /*
+        |--------------------------------------------------------------------------
+        | Retry
+        |--------------------------------------------------------------------------
+        */
 
-        getProductCategory(product) {
-            if (!product.category) {
-                return "Electronics";
-            }
-
-            return product.category
-                .replaceAll("-", " ")
-                .replace(/\b\w/g, (char) => char.toUpperCase());
+        retryFetch() {
+            this.fetchProducts();
         },
 
-        // ================= PRODUCT FEATURE =================
-
-        getProductFeature(product) {
-            if (product.brand) {
-                return product.brand;
-            }
-
-            if (product.category) {
-                return this.getProductCategory(product);
-            }
-
-            return "High Performance";
+        viewDetails(product) {
+            this.$router.push({
+                name: "product-details",
+                params: {
+                    id: product.id,
+                },
+            });
         },
     },
 };
@@ -289,41 +396,52 @@ export default {
 
 <template>
     <main class="search-page">
-        <!-- ================= SEARCH CONTENT ================= -->
-
         <section class="search-section">
-            <div class="container-fluid px-4 px-lg-5">
+            <div class="container-fluid">
                 <div class="row g-4">
-                    <!-- ================= FILTERS ================= -->
+                    <!-- ================================================= -->
+                    <!-- FILTERS -->
+                    <!-- ================================================= -->
 
-                    <aside class="col-3">
+                    <aside class="col-4 col-md-4 col-lg-3">
                         <div class="filters-card">
+                            <!-- Header -->
+
                             <div class="filters-header">
                                 <h2>Filters</h2>
+
+                                <button
+                                    type="button"
+                                    class="clear-filter-btn"
+                                    @click="clearAllFilters"
+                                >
+                                    Clear
+                                </button>
                             </div>
 
-                            <!-- ================= PRODUCT TYPE ================= -->
-
+                            <!-- ================================================= -->
+                            <!-- PRODUCT TYPE -->
+                            <!-- ================================================= -->
 
                             <div class="filter-group">
-                                <div
+                                <button
+                                    type="button"
                                     class="filter-title"
                                     @click="productTypeOpen = !productTypeOpen"
                                 >
-                                    <span>Product Type</span>
+                                    <span> Product Type </span>
 
-                                    <i
-                                        class="bi"
-                                        :class="
-                                            productTypeOpen
-                                                ? 'bi-chevron-up'
-                                                : 'bi-chevron-down'
-                                        "
-                                    ></i>
-                                </div>
+                                    <span>
+                                        {{ productTypeOpen ? "−" : "+" }}
+                                    </span>
+                                </button>
 
-                                <div v-show="productTypeOpen">
+                                <div
+                                    v-show="productTypeOpen"
+                                    class="filter-options"
+                                >
                                     <!-- All Products -->
+
                                     <label class="filter-option">
                                         <input
                                             type="checkbox"
@@ -333,10 +451,11 @@ export default {
                                             @change="selectedCategories = []"
                                         />
 
-                                        <span>All Products</span>
+                                        <span> All Products </span>
                                     </label>
 
-                                    <!-- Dynamic Categories -->
+                                    <!-- Categories -->
+
                                     <label
                                         v-for="category in availableCategories"
                                         :key="category"
@@ -349,42 +468,35 @@ export default {
                                         />
 
                                         <span>
-                                            {{
-                                                category
-                                                    .replaceAll("-", " ")
-                                                    .replace(/\b\w/g, (char) =>
-                                                        char.toUpperCase(),
-                                                    )
-                                            }}
+                                            {{ category.replaceAll("-", " ") }}
                                         </span>
                                     </label>
                                 </div>
                             </div>
 
-                            <!-- ================= BRAND ================= -->
+                            <!-- ================================================= -->
+                            <!-- BRAND -->
+                            <!-- ================================================= -->
 
                             <div
-                                v-if="availableBrands.length > 0"
+                                v-if="availableBrands.length"
                                 class="filter-group"
                             >
-                                <div
+                                <button
+                                    type="button"
                                     class="filter-title"
                                     @click="brandOpen = !brandOpen"
                                 >
-                                    <span>Brand</span>
+                                    <span> Brand </span>
 
-                                    <i
-                                        class="bi"
-                                        :class="
-                                            brandOpen
-                                                ? 'bi-chevron-up'
-                                                : 'bi-chevron-down'
-                                        "
-                                    ></i>
-                                </div>
+                                    <span>
+                                        {{ brandOpen ? "−" : "+" }}
+                                    </span>
+                                </button>
 
-                                <div v-show="brandOpen">
+                                <div v-show="brandOpen" class="filter-options">
                                     <!-- All Brands -->
+
                                     <label class="filter-option">
                                         <input
                                             type="checkbox"
@@ -394,10 +506,11 @@ export default {
                                             @change="selectedBrands = []"
                                         />
 
-                                        <span>All Brands</span>
+                                        <span> All Brands </span>
                                     </label>
 
-                                    <!-- Dynamic Brands -->
+                                    <!-- Brands -->
+
                                     <label
                                         v-for="brand in availableBrands"
                                         :key="brand"
@@ -409,120 +522,109 @@ export default {
                                             v-model="selectedBrands"
                                         />
 
-                                        <span>{{ brand }}</span>
+                                        <span>
+                                            {{ brand }}
+                                        </span>
                                     </label>
                                 </div>
                             </div>
-                            <!-- ================= RATING ================= -->
 
-                            <div class="filter-group">
-                                <div
-                                    class="filter-title"
-                                    @click="ratingOpen = !ratingOpen"
-                                >
-                                    <span>Rating</span>
-
-                                    <i
-                                        class="bi"
-                                        :class="
-                                            ratingOpen
-                                                ? 'bi-chevron-up'
-                                                : 'bi-chevron-down'
-                                        "
-                                    ></i>
-                                </div>
-
-                                <div v-show="ratingOpen">
-                                    <label class="filter-option">
-                                        <input
-                                            type="radio"
-                                            name="rating"
-                                            :value="0"
-                                            v-model="selectedRating"
-                                        />
-
-                                        <span>All Ratings</span>
-                                    </label>
-
-                                    <label class="filter-option">
-                                        <input
-                                            type="radio"
-                                            name="rating"
-                                            :value="4"
-                                            v-model="selectedRating"
-                                        />
-
-                                        <span>4+ Stars</span>
-                                    </label>
-
-                                    <label class="filter-option">
-                                        <input
-                                            type="radio"
-                                            name="rating"
-                                            :value="3"
-                                            v-model="selectedRating"
-                                        />
-
-                                        <span>3+ Stars</span>
-                                    </label>
-
-                                    <label class="filter-option">
-                                        <input
-                                            type="radio"
-                                            name="rating"
-                                            :value="2"
-                                            v-model="selectedRating"
-                                        />
-
-                                        <span>2+ Stars</span>
-                                    </label>
-
-                                    <label class="filter-option">
-                                        <input
-                                            type="radio"
-                                            name="rating"
-                                            :value="1"
-                                            v-model="selectedRating"
-                                        />
-
-                                        <span>1+ Stars</span>
-                                    </label>
-                                </div>
-                            </div>
-                            <!-- ================= CLEAR FILTERS ================= -->
+                            <!-- ================================================= -->
+                            <!-- RATING -->
+                            <!-- ================================================= -->
 
                             <div class="filter-group">
                                 <button
                                     type="button"
-                                    class="btn btn-dark w-100"
-                                    @click="resetFilters"
+                                    class="filter-title"
+                                    @click="ratingOpen = !ratingOpen"
                                 >
-                                    Clear All Filters
+                                    <span> Rating </span>
+
+                                    <span>
+                                        {{ ratingOpen ? "−" : "+" }}
+                                    </span>
                                 </button>
+
+                                <div v-show="ratingOpen" class="filter-options">
+                                    <label class="filter-option">
+                                        <input
+                                            type="radio"
+                                            :value="0"
+                                            v-model="selectedRating"
+                                        />
+
+                                        <span> All Ratings </span>
+                                    </label>
+
+                                    <label
+                                        v-for="rating in [4, 3, 2, 1]"
+                                        :key="rating"
+                                        class="filter-option"
+                                    >
+                                        <input
+                                            type="radio"
+                                            :value="rating"
+                                            v-model="selectedRating"
+                                        />
+
+                                        <span> {{ rating }}+ Stars </span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- ================================================= -->
+                            <!-- PRICE -->
+                            <!-- ================================================= -->
+
+                            <div class="filter-group">
+                                <div class="filter-title static">
+                                    <span> Price </span>
+                                </div>
+
+                                <div class="price-inputs">
+                                    <input
+                                        v-model="minPrice"
+                                        type="number"
+                                        min="0"
+                                        placeholder="Min"
+                                    />
+
+                                    <input
+                                        v-model="maxPrice"
+                                        type="number"
+                                        min="0"
+                                        placeholder="Max"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </aside>
 
-                    <!-- ================= PRODUCTS ================= -->
+                    <!-- ================================================= -->
+                    <!-- PRODUCTS -->
+                    <!-- ================================================= -->
 
-                    <div class="col-9">
-                        <!-- Header -->
+                    <div class="col-8 col-md-8 col-lg-9">
+                        <!-- Results Header -->
+
                         <div class="results-header">
                             <div>
-                                <h1>Search results for: "{{ searchQuery }}"</h1>
+                                <h1>
+                                    {{
+                                        searchQuery.trim()
+                                            ? `Search results for "${searchQuery}"`
+                                            : "All Products"
+                                    }}
+                                </h1>
 
-                                <span class="results-count">
-                                    SHOWING
+                                <p>
                                     {{ totalProducts }}
-                                    ITEMS
-                                </span>
+                                    products found
+                                </p>
                             </div>
 
-                            <select
-                                v-model="sortBy"
-                                class="sort-select"
-                                @change="changeSort"
-                            >
+                            <select v-model="sortBy" class="sort-select">
                                 <option value="relevance">Relevance</option>
 
                                 <option value="price-low">
@@ -533,113 +635,81 @@ export default {
                                     Price: High to Low
                                 </option>
 
-                                <option value="rating">Rating</option>
+                                <option value="rating">Highest Rated</option>
                             </select>
                         </div>
 
-                        <!-- Loading -->
+                        <!-- ================================================= -->
+                        <!-- LOADING -->
+                        <!-- ================================================= -->
+
                         <div v-if="loading" class="loading-state">
-                            <div class="spinner-border" role="status"></div>
+                            <div class="spinner"></div>
 
                             <p>Loading products...</p>
                         </div>
 
-                        <!-- Error -->
+                        <!-- ================================================= -->
+                        <!-- ERROR -->
+                        <!-- ================================================= -->
+
                         <div v-else-if="error" class="error-state">
-                            <i class="bi bi-exclamation-circle"></i>
+                            <h3>Something went wrong</h3>
 
-                            <p>{{ error }}</p>
+                            <p>
+                                {{ error }}
+                            </p>
 
-                            <button class="retry-button" @click="fetchProducts">
+                            <button type="button" @click="retryFetch">
                                 Try Again
                             </button>
                         </div>
 
-                        <!-- No Results -->
+                        <!-- ================================================= -->
+                        <!-- EMPTY -->
+                        <!-- ================================================= -->
+
                         <div
-                            v-else-if="products.length === 0"
+                            v-else-if="totalProducts === 0"
                             class="empty-state"
                         >
-                            <i class="bi bi-search"></i>
-
                             <h3>No products found</h3>
 
-                            <p>Try searching for another product.</p>
+                            <p>Try changing your search or filters.</p>
                         </div>
 
-                        <!-- Product Grid -->
-                        <div v-else class="products-grid">
-                            <article
-                                v-for="product in filteredProducts"
-                                :key="product.id"
-                                class="product-card"
-                            >
-                                <!-- Product Image -->
-                                <div class="product-image-wrapper">
-                                    <img
-                                        :src="product.thumbnail"
-                                        :alt="product.title"
-                                        class="product-image"
-                                    />
+                        <!-- ================================================= -->
+                        <!-- PRODUCTS COMPONENT -->
+                        <!-- ================================================= -->
 
-                                    <span
-                                        v-if="product.discountPercentage > 15"
-                                        class="product-badge"
-                                    >
-                                        SALE
-                                    </span>
-                                </div>
+                        <ProductsComponent
+                            v-else
+                            :products="paginatedProducts"
+                            @add-to-cart="addToCart"
+                            @view-details="viewDetails"
+                        />
 
-                                <!-- Product Content -->
-                                <div class="product-content">
-                                    <span class="product-category">
-                                        {{ getProductCategory(product) }}
-                                    </span>
+                        <!-- ================================================= -->
+                        <!-- PAGINATION -->
+                        <!-- ================================================= -->
 
-                                    <h2 class="product-title">
-                                        {{ product.title }}
-                                    </h2>
-
-                                    <div class="product-feature">
-                                        <i class="bi bi-cpu"></i>
-
-                                        <span>
-                                            {{ getProductFeature(product) }}
-                                        </span>
-                                    </div>
-
-                                    <div class="product-bottom">
-                                        <strong class="product-price">
-                                            {{ formatPrice(product.price) }}
-                                        </strong>
-
-                                        <button
-                                            class="add-cart-button"
-                                            type="button"
-                                            @click="addToCart(product)"
-                                            aria-label="Add to cart"
-                                        >
-                                            <i class="bi bi-cart-plus"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </article>
-                        </div>
-
-                        <!-- Pagination -->
-                        <div v-if="totalPages > 1" class="pagination">
+                        <nav
+                            v-if="!loading && !error && totalPages > 1"
+                            class="pagination"
+                            aria-label="Product pagination"
+                        >
                             <button
-                                class="pagination-arrow"
+                                type="button"
                                 :disabled="currentPage === 1"
                                 @click="previousPage"
                             >
-                                <i class="bi bi-chevron-left"></i>
+                                Previous
                             </button>
 
                             <button
                                 v-for="page in visiblePages"
                                 :key="page"
-                                class="pagination-number"
+                                type="button"
                                 :class="{
                                     active: currentPage === page,
                                 }"
@@ -649,363 +719,179 @@ export default {
                             </button>
 
                             <button
-                                class="pagination-arrow"
+                                type="button"
                                 :disabled="currentPage === totalPages"
                                 @click="nextPage"
                             >
-                                <i class="bi bi-chevron-right"></i>
+                                Next
                             </button>
-                        </div>
+                        </nav>
                     </div>
                 </div>
             </div>
         </section>
-
-        <!-- ================= GLOBAL FOOTER ================= -->
 
         <AppFooter />
     </main>
 </template>
 
 <style scoped>
-/* ================= PAGE ================= */
-
 .search-page {
+    width: 100%;
     min-height: 100vh;
-    background: #faf8fa;
-    color: #202020;
+    background: #fff;
 }
 
-/* ================= SEARCH SECTION ================= */
-
 .search-section {
-    padding: 30px 0 85px;
+    padding: 40px 0 60px;
 }
 
 /* ================= FILTERS ================= */
 
 .filters-card {
-    background: #ffffff;
-    border: 1px solid #cfcfd3;
-    border-radius: 4px;
-    overflow: hidden;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 20px;
 }
 
 .filters-header {
-    padding: 20px 16px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
 }
 
 .filters-header h2 {
     margin: 0;
-    font-size: 21px;
-    font-weight: 700;
+    font-size: 22px;
 }
 
-.filters-header::after {
-    content: "";
-    display: block;
-    height: 1px;
-    background: #c9c9cd;
-    margin-top: 12px;
+.clear-filter-btn {
+    border: none;
+    background: transparent;
+    color: #777;
+    cursor: pointer;
+    font-size: 13px;
 }
 
 .filter-group {
-    margin: 0 16px;
     padding: 18px 0;
-    border-bottom: 1px solid #cfcfd3;
-}
-
-.filter-group:last-child {
-    border-bottom: none;
+    border-top: 1px solid #eee;
 }
 
 .filter-title {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-
-    margin-bottom: 15px;
-
-    font-size: 17px;
-    font-weight: 700;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #222;
 }
 
-.filter-title i {
-    font-size: 12px;
-    color: #aaa;
+.filter-title.static {
+    cursor: default;
+}
+
+.filter-options {
+    margin-top: 14px;
 }
 
 .filter-option {
     display: flex;
     align-items: center;
     gap: 9px;
-
-    margin-bottom: 12px;
-
-    color: #5b5c62;
-    font-size: 14px;
-
+    margin-bottom: 11px;
+    font-size: 13px;
+    color: #555;
     cursor: pointer;
-}
-
-.filter-option:last-child {
-    margin-bottom: 0;
 }
 
 .filter-option input {
-    appearance: none;
-
-    width: 16px;
-    height: 16px;
-
-    border: 1px solid #c8c9ce;
-    border-radius: 2px;
-
-    background: #ffffff;
-
     cursor: pointer;
 }
 
-.filter-option input:checked {
-    background: #111;
-    border-color: #111;
-
-    position: relative;
+.price-inputs {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
 }
 
-.filter-option input:checked::after {
-    content: "✓";
-
-    position: absolute;
-
-    left: 2px;
-    top: -2px;
-
-    color: white;
-
-    font-size: 12px;
-    font-weight: 700;
+.price-inputs input {
+    width: 50%;
+    padding: 9px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    outline: none;
 }
 
-/* ================= RESULTS HEADER ================= */
+/* ================= RESULTS ================= */
 
 .results-header {
     display: flex;
-    align-items: flex-start;
     justify-content: space-between;
-
-    gap: 25px;
-
-    border-bottom: 1px solid #cfcfd3;
-
-    padding: 0 0 15px;
-    margin-bottom: 22px;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 25px;
 }
 
 .results-header h1 {
-    margin: 0 0 8px;
-
-    font-size: clamp(30px, 3vw, 40px);
-    line-height: 1.1;
-
-    font-weight: 700;
-    letter-spacing: -1px;
+    margin: 0 0 5px;
+    font-size: 24px;
 }
 
-.results-count {
-    color: #5f6470;
-
-    font-family: monospace;
-    font-size: 11px;
-    font-weight: 600;
-
-    letter-spacing: 2px;
+.results-header p {
+    margin: 0;
+    color: #777;
+    font-size: 14px;
 }
 
 .sort-select {
-    width: 162px;
-    height: 38px;
-
-    padding: 0 12px;
-
-    border: 1px solid #c8c8cd;
-    border-radius: 2px;
-
-    background: #ffffff;
-
-    color: #333;
-
-    font-size: 13px;
-
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 7px;
+    background: #fff;
     cursor: pointer;
+    outline: none;
 }
 
-/* ================= PRODUCT GRID ================= */
+/* ================= STATES ================= */
 
-.products-grid {
-    display: grid;
-
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-
-    gap: 16px;
+.loading-state,
+.error-state,
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
 }
 
-/* ================= PRODUCT CARD ================= */
-
-.product-card {
-    background: #ffffff;
-
-    border: 1px solid #c8c9cd;
-    border-radius: 4px;
-
-    overflow: hidden;
-
-    min-width: 0;
-
-    transition:
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #eee;
+    border-top-color: #111;
+    border-radius: 50%;
+    margin: 0 auto 15px;
+    animation: spin 0.8s linear infinite;
 }
 
-.product-card:hover {
-    transform: translateY(-2px);
-
-    box-shadow: 0 7px 20px rgba(0, 0, 0, 0.06);
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
-/* ================= IMAGE ================= */
-
-.product-image-wrapper {
-    position: relative;
-
-    height: 155px;
-
-    margin: 15px 15px 0;
-
-    background: #f3f4f5;
-
-    overflow: hidden;
-}
-
-.product-image {
-    width: 100%;
-    height: 100%;
-
-    object-fit: contain;
-
-    display: block;
-}
-
-.product-badge {
-    position: absolute;
-
-    top: 8px;
-    left: 8px;
-
-    padding: 5px 8px;
-
+.error-state button {
+    border: none;
     background: #111;
     color: #fff;
-
-    font-size: 10px;
-    font-weight: 700;
-
-    letter-spacing: 1px;
-}
-
-/* ================= PRODUCT CONTENT ================= */
-
-.product-content {
-    padding: 14px 15px 15px;
-}
-
-.product-category {
-    display: block;
-
-    margin-bottom: 5px;
-
-    color: #60636a;
-
-    font-family: monospace;
-    font-size: 11px;
-    font-weight: 600;
-
-    letter-spacing: 1.5px;
-}
-
-.product-title {
-    min-height: 46px;
-
-    margin: 0 0 10px;
-
-    color: #222;
-
-    font-size: 18px;
-    line-height: 1.2;
-
-    font-weight: 700;
-}
-
-.product-feature {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-
-    min-height: 28px;
-
-    color: #586a84;
-
-    font-family: monospace;
-    font-size: 10px;
-    font-weight: 600;
-
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.product-feature i {
-    font-size: 12px;
-}
-
-.product-bottom {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    margin-top: 12px;
-}
-
-.product-price {
-    color: #202020;
-
-    font-size: 20px;
-    font-weight: 700;
-}
-
-.add-cart-button {
-    width: 36px;
-    height: 36px;
-
-    border: none;
-    border-radius: 2px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    background: #050505;
-    color: #ffffff;
-
-    font-size: 17px;
-
+    padding: 10px 18px;
+    border-radius: 7px;
     cursor: pointer;
-
-    transition: 0.2s ease;
-}
-
-.add-cart-button:hover {
-    background: #333;
-    transform: translateY(-1px);
 }
 
 /* ================= PAGINATION ================= */
@@ -1014,136 +900,40 @@ export default {
     display: flex;
     justify-content: center;
     align-items: center;
-
     gap: 8px;
-
-    margin-top: 32px;
+    margin-top: 35px;
+    flex-wrap: wrap;
 }
 
-.pagination-number,
-.pagination-arrow {
-    width: 34px;
-    height: 34px;
-
-    border: none;
-
-    background: transparent;
-
-    color: #222;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
+.pagination button {
+    min-width: 38px;
+    height: 38px;
+    border: 1px solid #ddd;
+    background: #fff;
+    border-radius: 6px;
     cursor: pointer;
-
-    font-size: 14px;
 }
 
-.pagination-number.active {
-    background: #050505;
-    color: #ffffff;
+.pagination button:hover:not(:disabled) {
+    background: #f5f5f5;
 }
 
-.pagination-arrow:disabled {
-    color: #c7c7c7;
+.pagination button.active {
+    background: #111;
+    color: #fff;
+    border-color: #111;
+}
+
+.pagination button:disabled {
+    opacity: 0.4;
     cursor: not-allowed;
 }
 
-.pagination-arrow:hover:not(:disabled),
-.pagination-number:hover:not(.active) {
-    background: #eeeeee;
-}
-
-/* ================= LOADING ================= */
-
-.loading-state {
-    min-height: 350px;
-
-    display: flex;
-    flex-direction: column;
-
-    justify-content: center;
-    align-items: center;
-
-    gap: 15px;
-}
-
-.loading-state p {
-    margin: 0;
-
-    color: #666;
-
-    font-size: 14px;
-}
-
-/* ================= ERROR ================= */
-
-.error-state,
-.empty-state {
-    min-height: 350px;
-
-    display: flex;
-    flex-direction: column;
-
-    justify-content: center;
-    align-items: center;
-
-    text-align: center;
-}
-
-.error-state i,
-.empty-state i {
-    font-size: 38px;
-    margin-bottom: 15px;
-}
-
-.error-state p,
-.empty-state p {
-    color: #666;
-    margin: 0 0 15px;
-}
-
-.empty-state h3 {
-    margin-bottom: 8px;
-}
-
-.retry-button {
-    border: none;
-
-    background: #111;
-    color: white;
-
-    padding: 10px 20px;
-
-    cursor: pointer;
-}
-
-/* ================= TABLET ================= */
-
-@media (max-width: 991.98px) {
-    .products-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .results-header {
-        align-items: center;
-    }
-
-    .results-header h1 {
-        font-size: 30px;
-    }
-}
-
-/* ================= MOBILE ================= */
+/* ================= RESPONSIVE ================= */
 
 @media (max-width: 767.98px) {
     .search-section {
-        padding: 20px 0 50px;
-    }
-
-    .filters-card {
-        margin-bottom: 10px;
+        padding: 25px 0 40px;
     }
 
     .results-header {
@@ -1152,27 +942,15 @@ export default {
     }
 
     .results-header h1 {
-        font-size: 28px;
+        font-size: 20px;
     }
 
     .sort-select {
         width: 100%;
     }
 
-    .products-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .product-image-wrapper {
-        height: 220px;
-    }
-
-    .product-title {
-        font-size: 19px;
-    }
-
-    .pagination {
-        margin-top: 25px;
+    .filters-card {
+        margin-bottom: 10px;
     }
 }
 </style>
