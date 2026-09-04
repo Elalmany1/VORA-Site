@@ -296,7 +296,7 @@ export default {
                 <div class="row g-4">
                     <!-- ================= FILTERS ================= -->
 
-                    <aside class="col-lg-3 col-xl-3">
+                    <aside class="col-3">
                         <div class="filters-card">
                             <div class="filters-header">
                                 <h2>Filters</h2>
@@ -304,7 +304,6 @@ export default {
 
                             <!-- ================= PRODUCT TYPE ================= -->
 
-                            <!-- ================= PRODUCT TYPE ================= -->
 
                             <div class="filter-group">
                                 <div
@@ -361,8 +360,6 @@ export default {
                                     </label>
                                 </div>
                             </div>
-
-                            <!-- ================= BRAND ================= -->
 
                             <!-- ================= BRAND ================= -->
 
@@ -508,7 +505,7 @@ export default {
 
                     <!-- ================= PRODUCTS ================= -->
 
-                    <div class="col-lg-9 col-xl-9">
+                    <div class="col-9">
                         <!-- Header -->
                         <div class="results-header">
                             <div>
