@@ -1,3 +1,7 @@
+import OrderHistory from './views/Orderhistory.vue'
+import Overview from './views/Overview.vue'
+import CreateAccount from './views/Tech.vue'
+import Authenticate from './views/Authenticate.vue'
 import { createApp } from "vue";
 import App from "./App.vue";
 
@@ -15,6 +19,10 @@ import Support from "./views/Support.vue";
 import Search from "./views/Search.vue";
 import ProductDetails from "./views/ProductDetails.vue";
 import Handler from "./components/handler.vue";
+import OrderHistory from './views/Orderhistory.vue';
+import Overview from './views/Overview.vue';
+import Authenticate from './views/Authenticate.vue';
+import Tech from './views/Tech.vue';
 
 const routes = [
     { path: "/", name: "home", component: Home },
@@ -22,9 +30,12 @@ const routes = [
     { path: "/categories", name: "categories", component: Categories },
     { path: "/deals", name: "deals", component: Deals },
     { path: "/support", name: "support", component: Support },
-    { path: "/search", name: "search", component: Search },
-    {path: "/product/:id", name: "product-details", component: ProductDetails,},
-];
+{ path: "/search", name: "search", component: Search },
+    { path: "/product/:id", name: "product-details", component: ProductDetails },
+    { path: "/orders", component: OrderHistory },
+    { path: "/overview", component: Overview },
+    { path: "/tech", component: Tech },
+    { path: "/login", component: Authenticate }
 
 const router = createRouter({
     history: createWebHistory(),
