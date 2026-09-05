@@ -1,3 +1,7 @@
+import OrderHistory from './views/Orderhistory.vue'
+import Overview from './views/Overview.vue'
+import CreateAccount from './views/Tech.vue'
+import Authenticate from './views/Authenticate.vue'
 import { createApp } from "vue";
 import App from "./App.vue";
 
@@ -14,6 +18,7 @@ import Deals from "./views/Deals.vue";
 import Support from "./views/Support.vue";
 import Search from "./views/Search.vue";
 import Handler from "./components/handler.vue";
+import Tech from './views/Tech.vue';
 
 const routes = [
     { path: "/", name: "home", component: Home },
@@ -22,6 +27,10 @@ const routes = [
     { path: "/deals", name: "deals", component: Deals },
     { path: "/support", name: "support", component: Support },
     {path: "/search", name: "search", component: Search,},
+    { path: '/orders', component: OrderHistory },
+{ path: '/overview', component: Overview },
+{ path: '/signup', component: Tech },
+{ path: '/login', component: Authenticate }
 ];
 
 const router = createRouter({
