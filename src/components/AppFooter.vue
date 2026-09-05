@@ -97,7 +97,7 @@ export default {
 /* ================= FOOTER ================= */
 
 .global-footer {
-    background: #2d2d2f;
+    background: #131b2e;
     color: #ffffff;
 }
 
