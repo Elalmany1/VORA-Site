@@ -28,7 +28,7 @@ export default {
 </script>
 
 <template>
-    <nav class="navbar navbar-expand-lg bg-black navbar-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #131b2e;">
         <div class="container-fluid px-3 px-lg-4">
             <!-- Logo -->
             <RouterLink to="/" class="navbar-brand">
