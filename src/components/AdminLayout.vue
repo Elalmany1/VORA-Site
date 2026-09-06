@@ -1,25 +1,25 @@
 <template>
   <div class="admin-layout">
     <!-- 1. القائمة الجانبية -->
-    <aside class="sidebar">
+    <div class="sidebar">
       <div class="logo">VORA</div>
       <nav class="menu">
         <a href="#">Dashboard</a>
         <a href="#">Settings</a>
       </nav>
       <div class="user-profile">Admin User</div>
-    </aside>
+    </div>
 
     <!-- 2. الجزء الأيمن (الهيدر + المحتوى) -->
     <div class="main-wrapper">
-      <header class="navbar">
+      <div class="navbar">
         <input type="text" placeholder="Search..." />
         <div class="icons">🔔 ⚙️ 👤</div>
-      </header>
+      </div>
 
       <!-- هنا بتظهر الصفحة المتغيرة -->
       <main class="content">
-        <slot /> <!-- أو <router-view /> -->
+        <router-view />
       </main>
     </div>
   </div>

@@ -29,11 +29,11 @@
                 <a href="#" class="text-white fs-5 position-relative">
                     <i class="bi bi-cart3"></i>
 
-                    <span
+                    <div
                         class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
                     >
                         0
-                    </span>
+                    </div>
                 </a>
             </div>
 
@@ -47,7 +47,7 @@
                 aria-expanded="false"
                 aria-label="Toggle navigation"
             >
-                <span class="navbar-toggler-icon"></span>
+                <div class="navbar-toggler-icon"></div>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
